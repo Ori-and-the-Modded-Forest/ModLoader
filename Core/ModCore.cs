@@ -69,7 +69,6 @@ namespace OriMod.Core {
 
 		internal static void OnGameStartup() {
 			CoreLoaded = false;
-			TempLogger.Log("Loading Start");
 
 			var th = new Thread(LoadCoreThread);
 			th.Priority = ThreadPriority.AboveNormal;
@@ -78,7 +77,6 @@ namespace OriMod.Core {
 		}
 		private static void LoadCoreThread() {
 			try {
-				TempLogger.Log("Loading");
 
 				AssetManager.Initialize();
 
@@ -113,7 +111,6 @@ namespace OriMod.Core {
 					module.OnLoad();
 				}
 
-				TempLogger.Log("Done Loading");
 				CoreLoaded = true;
 			}
 			catch (Exception ex) {
