@@ -2,6 +2,7 @@
 using OriMod.Core;
 using OriMod.Util;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -20,11 +21,9 @@ using UnityEngine.SceneManagement;
 
 public class patch_LoadingBootstrap : LoadingBootstrap {
 
-	extern void orig_Awake();
+	public extern IEnumerator orig_Start();
 
-	public void Awake() {
-		orig_Awake();
-
+	public new IEnumerator Start() {
 
 		try {
 			TempLogger.Init();
@@ -37,7 +36,14 @@ public class patch_LoadingBootstrap : LoadingBootstrap {
 			Application.Quit();
 		}
 
+		while (!ModCore.CoreLoaded)
+			yield return new WaitForEndOfFrame();
 
+		var ien = orig_Start();
+
+		while (ien.MoveNext()) {
+			yield return ien.Current;
+		}
 	}
 
 
