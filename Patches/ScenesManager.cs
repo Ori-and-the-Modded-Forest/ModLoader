@@ -153,8 +153,8 @@ public class patch_ScenesManager : ScenesManager {
 
 		foreach (patch_RuntimeSceneMetaData scene in AllScenes) {
 
-			//if (scene.WorldOrigin != currentWorld)
-			//	continue;
+			if (scene.WorldOrigin != currentWorld)
+				continue;
 
 			if (scene.DependantScene || !scene.IsInTotal(rect)) {
 				continue;
