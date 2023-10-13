@@ -9,7 +9,7 @@ public class patch_SaveSlotsManager : SaveSlotsManager {
 
 	[MonoModReplace]
 	public void Awake() {
-		SaveSlotsManager.Instance = this;
+		Instance = this;
 		for (int i = 0; i < 10 || GameController.Instance.SaveGameController.SaveExists(i - 1); i++) {
 			this.SaveSlots.Add(null);
 		}
@@ -17,7 +17,7 @@ public class patch_SaveSlotsManager : SaveSlotsManager {
 
 	[MonoModReplace]
 	public static void PrepareSlots() {
-		SaveSlotsManager.Instance.SaveSlots.Clear();
+		Instance.SaveSlots.Clear();
 
 		int i = 0;
 
@@ -28,19 +28,19 @@ public class patch_SaveSlotsManager : SaveSlotsManager {
 					SaveSlotInfo saveSlotInfo = new SaveSlotInfo();
 					if (saveSlotInfo.LoadFromReader(binaryReader)) {
 						if (GameController.Instance.IsTrial && !saveSlotInfo.IsTrialSave) {
-							SaveSlotsManager.Instance.SaveSlots.Add(null);
+							Instance.SaveSlots.Add(null);
 						}
 						else {
-							SaveSlotsManager.Instance.SaveSlots.Add(saveSlotInfo);
+							Instance.SaveSlots.Add(saveSlotInfo);
 						}
 					}
 					else {
-						SaveSlotsManager.Instance.SaveSlots.Add(null);
+						Instance.SaveSlots.Add(null);
 					}
 				}
 			}
 			else {
-				SaveSlotsManager.Instance.SaveSlots.Add(null);
+				Instance.SaveSlots.Add(null);
 			}
 			i++;
 
