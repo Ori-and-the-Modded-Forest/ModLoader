@@ -21,7 +21,7 @@ namespace OriMod.Core {
 
 		private class ModMetaData {
 			public string Name { get; set; }
-			public System.Version Version { get; set; } = new System.Version(1, 0, 4, 420);
+			public System.Version Version { get; set; }
 			public string Code { get; set; }
 		}
 		class VersionConvert : IYamlTypeConverter {

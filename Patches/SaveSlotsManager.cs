@@ -11,7 +11,7 @@ public class patch_SaveSlotsManager : SaveSlotsManager {
 	public void Awake() {
 		Instance = this;
 		for (int i = 0; i < 10 || GameController.Instance.SaveGameController.SaveExists(i - 1); i++) {
-			this.SaveSlots.Add(null);
+			SaveSlots.Add(null);
 		}
 	}
 

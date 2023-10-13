@@ -16,7 +16,7 @@ using UnityEngine.SceneManagement;
 /// Todo: Create a mod options menu in game.
 /// Todo: Make sure the mod is working again.
 /// Todo: Organize code to be neater.
-/// Todo: Enable modded modules to exist.
+/// Todo: Finish the custom level code.
 /// </summary>
 
 public class patch_LoadingBootstrap : LoadingBootstrap {
