@@ -252,124 +252,208 @@ public class patch_ScenesManager : ScenesManager {
 
 	}
 
+	class LevelGameObject {
+		public LevelGameObject[] Children;
+		public LevelComponent[] Components;
+
+		public Vector3 LocalOffset;
+		public Vector3 LocalScale;
+		public Quaternion LocalRotation;
+	}
+	class LevelComponent {
+		public string Name;
+		public Dictionary<string, object> Attributes;
+	}
+	class LevelRoot {
+		public LevelGameObject[] Children;
+	}
+
 	private void LoadCustomLevel(patch_SceneManagerScene scene) {
 
 		try {
 			var sceneRoot = scene.SceneRoot;
-			var art = new GameObject();
-			art.name = "art";
-			art.transform.SetParent(sceneRoot.transform, false);
-			art.transform.localPosition = new Vector3(-0.55f, 0.15f, 0);
 
-			var temp = GameObject.CreatePrimitive(PrimitiveType.Plane);
+			GameObject parseObject(LevelGameObject obj) {
+				GameObject retval = new GameObject();
 
-			var mesh = temp.GetComponent<MeshFilter>().mesh;
-			var mat = new Material(patch_GameStateMachine.TempShader);
-			//mat.mainTexture = patch_LoadingBootstrap.TestRock;
+				try {
+					void setValue(Component parent, object value, FieldInfo fi) {
+						if (fi.FieldType == typeof(Texture2D)) {
 
-			mat.renderQueue = 9288;
-			mat.color = new Color(0.6f, 0.6f, 0.6f, 1);// = 9288;
-
-			var asset = scene.asset;
-
-			using (var sr = new StreamReader(asset.ContentStream)) {
-				var line = sr.ReadLine();
-
-				string[] split;
-
-				while (!sr.EndOfStream) {
-					line = sr.ReadLine();
-					TempLogger.Log(line);
-					if (string.IsNullOrEmpty(line) || !line.Contains(":"))
-						continue;
-					split = line.Split(':');
-					line = split[0];
-					if (split.Length > 1 && split[1].Contains(","))
-						split = split[1].Split(',');
-					else {
-						split = new string[1] { split[1] };
-					}
-
-					switch (line) {
-						case "art":
-							var artChild = new GameObject();
-							artChild.name = "newArt";
-							artChild.layer = 28;
-
-
-							var artMesh = artChild.AddComponent<MeshFilter>();
-							artMesh.mesh = mesh;
-
-							var renderer = artChild.AddComponent<MeshRenderer>();
-							renderer.material = mat;
-							renderer.sortingLayerName = "farBackground";
-							renderer.useLightProbes = false;
-							renderer.sortingOrder = 38;// = false;
-							renderer.receiveShadows = false;
-
-							artChild.transform.SetParent(art.transform, false);
-							artChild.transform.localPosition = new Vector3(float.Parse(split[0]), float.Parse(split[1]), 0);
-							artChild.transform.rotation = Quaternion.AngleAxis(float.Parse(split[2]) + 180, Vector3.forward) * Quaternion.AngleAxis(90, Vector3.left);
-							artChild.transform.localScale = Vector3.Scale(new Vector3(float.Parse(split[3]), 1, float.Parse(split[4])), new Vector3(1f / 9.9f, 1, 1f / 9.5f));
-
-
-							break;
-						case "rock": {
-
-							var collideChild = new GameObject();
-							collideChild.name = "rock";
-							collideChild.layer = 10;
-							collideChild.transform.SetParent(sceneRoot.transform, false);
-
-							List<Vector3> points = new List<Vector3>();
-							List<int> tris = new List<int>();
-
-							while ((line = sr.ReadLine()) != "end") {
-								TempLogger.Log(line);
-
-								split = line.Split(',');
-								if (split.Length < 2)
-									break;
-								Vector2 p = new Vector2(float.Parse(split[0]), float.Parse(split[1]));
-
-								points.Add(new Vector3(p.x, p.y, +0.001f));
-								points.Add(new Vector3(p.x, p.y, -0.001f));
-							}
-
-							for (int i = 0; i < points.Count; i += 2) {
-								tris.Add(i + 0);
-								tris.Add(i + 1);
-								tris.Add((i + 2) % points.Count);
-								tris.Add((i + 3) % points.Count);
-								tris.Add((i + 2) % points.Count);
-								tris.Add(i + 1);
-							}
-
-							var collMesh = new Mesh();
-							Vector3[] verts = new Vector3[points.Count];
-							for (int i = 0; i < points.Count; i++) {
-								verts[i] = points[i];
-							}
-							collMesh.vertices = verts;
-							collMesh.triangles = tris.ToArray();
-							collMesh.RecalculateNormals();
-
-							collMesh.RecalculateBounds();
-
-							var collide = collideChild.AddComponent<MeshCollider>();
-							collide.sharedMesh = collMesh;
-							collide.convex = false;
-
-
-
-
-							break;
+						}
+						else {
+							fi.SetValue(parent, value);
 						}
 
 					}
+
+					foreach (var comp in obj.Components) {
+						switch (comp.Name) {
+							default:
+								var type = Type.GetType(comp.Name);
+								var component = retval.AddComponent(type);
+
+								foreach (var pair in comp.Attributes) {
+									FieldInfo fi;
+									if ((fi = type.GetField(pair.Key, BindingFlags.Public | BindingFlags.Instance)) != null) {
+										setValue(component, pair.Value, fi);
+									}
+								}
+								break;
+							case "Sprite":
+								break;
+						}
+					}
+
+					return retval;
+				}
+				catch {
+					Destroy(retval);
+					return null;
 				}
 
 			}
+			void parseObjects(GameObject obj, LevelGameObject lvlObj) {
+
+				foreach (var child in lvlObj.Children) {
+					var p = parseObject(child);
+					if (p != null) {
+
+						p.transform.SetParent(obj.transform);
+
+						obj.transform.localPosition = child.LocalOffset;
+						obj.transform.localRotation = child.LocalRotation;
+						obj.transform.localScale = child.LocalScale;
+
+						parseObjects(p, child);
+					}
+				}
+			}
+
+			var parsed = Newtonsoft.Json.JsonConvert.DeserializeObject<LevelRoot>(scene.asset.GetText());
+
+			foreach (var child in parsed.Children) {
+				var p = parseObject(child);
+				if (p != null) {
+					p.transform.SetParent(sceneRoot.transform);
+					parseObjects(p, child);
+				}
+			}
+
+			//var art = new GameObject();
+			//art.name = "art";
+			//art.transform.SetParent(sceneRoot.transform, false);
+			//art.transform.localPosition = new Vector3(-0.55f, 0.15f, 0);
+
+			//var temp = GameObject.CreatePrimitive(PrimitiveType.Plane);
+
+			//var mesh = temp.GetComponent<MeshFilter>().mesh;
+			//var mat = new Material(patch_GameStateMachine.TempShader);
+			////mat.mainTexture = patch_LoadingBootstrap.TestRock;
+
+			//mat.renderQueue = 9288;
+			//mat.color = new Color(0.6f, 0.6f, 0.6f, 1);// = 9288;
+
+			//var asset = scene.asset;
+
+			//using (var sr = new StreamReader(asset.ContentStream)) {
+			//	var line = sr.ReadLine();
+
+			//	string[] split;
+
+			//	while (!sr.EndOfStream) {
+			//		line = sr.ReadLine();
+			//		TempLogger.Log(line);
+			//		if (string.IsNullOrEmpty(line) || !line.Contains(":"))
+			//			continue;
+			//		split = line.Split(':');
+			//		line = split[0];
+			//		if (split.Length > 1 && split[1].Contains(","))
+			//			split = split[1].Split(',');
+			//		else {
+			//			split = new string[1] { split[1] };
+			//		}
+
+			//		switch (line) {
+			//			case "art":
+			//				var artChild = new GameObject();
+			//				artChild.name = "newArt";
+			//				artChild.layer = 28;
+
+
+			//				var artMesh = artChild.AddComponent<MeshFilter>();
+			//				artMesh.mesh = mesh;
+
+			//				var renderer = artChild.AddComponent<MeshRenderer>();
+			//				renderer.material = mat;
+			//				renderer.sortingLayerName = "farBackground";
+			//				renderer.useLightProbes = false;
+			//				renderer.sortingOrder = 38;// = false;
+			//				renderer.receiveShadows = false;
+
+			//				artChild.transform.SetParent(art.transform, false);
+			//				artChild.transform.localPosition = new Vector3(float.Parse(split[0]), float.Parse(split[1]), 0);
+			//				artChild.transform.rotation = Quaternion.AngleAxis(float.Parse(split[2]) + 180, Vector3.forward) * Quaternion.AngleAxis(90, Vector3.left);
+			//				artChild.transform.localScale = Vector3.Scale(new Vector3(float.Parse(split[3]), 1, float.Parse(split[4])), new Vector3(1f / 9.9f, 1, 1f / 9.5f));
+
+
+			//				break;
+			//			case "rock": {
+
+			//				var collideChild = new GameObject();
+			//				collideChild.name = "rock";
+			//				collideChild.layer = 10;
+			//				collideChild.transform.SetParent(sceneRoot.transform, false);
+
+			//				List<Vector3> points = new List<Vector3>();
+			//				List<int> tris = new List<int>();
+
+			//				while ((line = sr.ReadLine()) != "end") {
+			//					TempLogger.Log(line);
+
+			//					split = line.Split(',');
+			//					if (split.Length < 2)
+			//						break;
+			//					Vector2 p = new Vector2(float.Parse(split[0]), float.Parse(split[1]));
+
+			//					points.Add(new Vector3(p.x, p.y, +0.001f));
+			//					points.Add(new Vector3(p.x, p.y, -0.001f));
+			//				}
+
+			//				for (int i = 0; i < points.Count; i += 2) {
+			//					tris.Add(i + 0);
+			//					tris.Add(i + 1);
+			//					tris.Add((i + 2) % points.Count);
+			//					tris.Add((i + 3) % points.Count);
+			//					tris.Add((i + 2) % points.Count);
+			//					tris.Add(i + 1);
+			//				}
+
+			//				var collMesh = new Mesh();
+			//				Vector3[] verts = new Vector3[points.Count];
+			//				for (int i = 0; i < points.Count; i++) {
+			//					verts[i] = points[i];
+			//				}
+			//				collMesh.vertices = verts;
+			//				collMesh.triangles = tris.ToArray();
+			//				collMesh.RecalculateNormals();
+
+			//				collMesh.RecalculateBounds();
+
+			//				var collide = collideChild.AddComponent<MeshCollider>();
+			//				collide.sharedMesh = collMesh;
+			//				collide.convex = false;
+
+
+
+
+			//				break;
+			//			}
+
+			//		}
+			//	}
+
+			//}
 
 			ActiveScenes.Add(scene);
 			failedAttempts[scene.MetaData.Scene] = 0;
