@@ -17,12 +17,17 @@ using YamlDotNet.Serialization.Utilities;
 namespace OriMod.Core {
 	public static class ModCore {
 
-		static Dictionary<string, ModdingModule> Mods = new Dictionary<string, ModdingModule>();
+		public static Dictionary<string, ModMetaData> Mods = new Dictionary<string, ModMetaData>();
 
-		private class ModMetaData {
-			public string Name { get; set; }
-			public System.Version Version { get; set; }
-			public string Code { get; set; }
+		public class ModMetaData {
+			public string Name { get; internal set; }
+			public System.Version Version { get; internal set; }
+			public string Code { get; internal set; }
+
+			[YamlIgnore]
+			public string Path { get; internal set; }
+			[YamlIgnore]
+			public ModdingModule Module { get; internal set; }
 		}
 		class VersionConvert : IYamlTypeConverter {
 			public bool Accepts(Type type) {
@@ -78,18 +83,24 @@ namespace OriMod.Core {
 		private static void LoadCoreThread() {
 			try {
 
-				AssetManager.Initialize();
-
 				var ser = new SerializerBuilder().WithTypeConverter(new VersionConvert()).Build();
 				var des = new DeserializerBuilder().WithTypeConverter(new VersionConvert()).Build();
 
-				List<ModdingModule> modules = new List<ModdingModule>();
+				string p = Assembly.GetExecutingAssembly().Location;
+
+				while (p.Contains("oriDE_Data")) {
+					p = Path.GetDirectoryName(p);
+				}
+				AssetManager.ModdedContent = Path.Combine(p, "Mods");
+
 
 				foreach (var dir in Directory.GetDirectories(AssetManager.ModdedContent)) {
 
 					string metaPath = Path.Combine(dir, "mod.yaml");
 
 					var meta = des.Deserialize<ModMetaData>(File.ReadAllText(metaPath));
+					meta.Path = dir;
+					Mods.Add(meta.Name, meta);
 
 					if (File.Exists(Path.Combine(dir, meta.Code))) {
 						var assembly = Assembly.LoadFrom(Path.Combine(dir, meta.Code));
@@ -97,9 +108,7 @@ namespace OriMod.Core {
 						foreach (var type in assembly.GetTypes()) {
 							if (type.IsSubclassOf(typeof(ModdingModule))) {
 								ModdingModule module = assembly.CreateInstance(type.FullName) as ModdingModule;
-								modules.Add(module);
 
-								Mods.Add(meta.Name, module);
 							}
 						}
 
@@ -107,8 +116,13 @@ namespace OriMod.Core {
 
 				}
 
-				foreach (var module in modules) {
-					module.OnLoad();
+				AssetManager.Initialize();
+				
+
+				foreach (var module in Mods.Values) {
+					if (module.Module != null) {
+						module.Module.OnLoad();
+					}
 				}
 
 				CoreLoaded = true;
