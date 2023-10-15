@@ -17,6 +17,7 @@ using UnityEngine.SceneManagement;
 /// Todo: Make sure the mod is working again.
 /// Todo: Organize code to be neater.
 /// Todo: Finish the custom level code.
+/// Todo: Figure out how to get textures into the game
 /// </summary>
 
 public class patch_LoadingBootstrap : LoadingBootstrap {

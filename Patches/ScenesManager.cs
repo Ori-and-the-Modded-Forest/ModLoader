@@ -149,31 +149,31 @@ public class patch_ScenesManager : ScenesManager {
 		Rect currentSceneBounds;
 		GetSceneBoundaryAtPosition(rect.center, out currentSceneBounds);
 
-		string currentWorld = (Game.Checkpoint.SaveGameData as patch_SaveGameData).World;
+		string currentWorld = "Nibel";
 
-		foreach (patch_RuntimeSceneMetaData scene in AllScenes) {
+		if (currentWorld == "Nibel") {
 
-			if (scene.WorldOrigin != currentWorld)
-				continue;
+			foreach (patch_RuntimeSceneMetaData scene in AllScenes) {
 
-			if (scene.DependantScene || !scene.IsInTotal(rect)) {
-				continue;
-			}
-
-			if (scene.IsInsideSceneBounds(rect)) {
-				if (scene.CanBeLoaded) {
-					AdditivelyLoadScene(scene, async, keepPreloaded);
+				if (scene.DependantScene || !scene.IsInTotal(rect)) {
+					continue;
 				}
-			}
-			else if (scene.IsInsideScenePaddingBounds(rect, currentSceneBounds)) {
-				if (scene.CanBeLoaded) {
-					AdditivelyLoadScene(scene, async, keepPreloaded);
+
+				if (scene.IsInsideSceneBounds(rect)) {
+					if (scene.CanBeLoaded) {
+						AdditivelyLoadScene(scene, async, keepPreloaded);
+					}
 				}
+				else if (scene.IsInsideScenePaddingBounds(rect, currentSceneBounds)) {
+					if (scene.CanBeLoaded) {
+						AdditivelyLoadScene(scene, async, keepPreloaded);
+					}
+				}
+				else if (scene.IsInsideSceneLoadingZone(rect) && scene.CanBeLoaded && loadingZones) {
+					AdditivelyLoadScene(scene, true, keepPreloaded);
+				}
+
 			}
-			else if (scene.IsInsideSceneLoadingZone(rect) && scene.CanBeLoaded && loadingZones) {
-				AdditivelyLoadScene(scene, true, keepPreloaded);
-			}
-			
 		}
 
 		foreach (patch_SceneMetaData scene in customLevels) {
