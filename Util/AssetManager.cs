@@ -19,15 +19,15 @@ namespace OriMod.Util {
 		public Stream ContentStream {
 			get {
 #if ZIP
-			if (zipEntry != null)
-				return zipEntry.Open();
-			else
+				if (zipEntry != null)
+					return zipEntry.Open();
+				else
 #endif
-				return new FileStream(LiteralPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+					return new FileStream(LiteralPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
 			}
 		}
 #if ZIP
-	private ZipArchiveEntry zipEntry;
+		private ZipArchiveEntry zipEntry;
 #endif
 		public readonly string Extention;
 		public readonly string LiteralPath;
@@ -36,18 +36,18 @@ namespace OriMod.Util {
 		public readonly ContentLocationType AssetType;
 
 #if ZIP
-	internal LoadedAsset(ZipArchiveEntry zip, string exactPath, DateTime lastEdit) {
-		zipEntry = zip;
+		internal LoadedAsset(ZipArchiveEntry zip, string exactPath, DateTime lastEdit) {
+			zipEntry = zip;
 
-		AssetType = ContentLocationType.ZipFile;
-		IsModContent = true;
+			AssetType = ContentLocationType.ZipFile;
+			IsModContent = true;
 
-		LastEdit = lastEdit.Ticks;
+			LastEdit = lastEdit.Ticks;
 
-		Extention = System.IO.Path.GetExtension(zip.FullName);
-		LiteralPath = exactPath;
-		Path = zip.FullName;
-	}
+			Extention = System.IO.Path.GetExtension(zip.FullName);
+			LiteralPath = exactPath;
+			Path = zip.FullName;
+		}
 #endif
 		internal LoadedAsset(string exactPath, string contentPath, DateTime lastEdit) {
 
@@ -87,11 +87,11 @@ namespace OriMod.Util {
 		//private readonly static ISerializer yamlSaver;
 
 
-		public static string ModdedContent { get; private set; }
+		public static string ModdedContent { get; internal set; }
 
 		private static Dictionary<string, LoadedAsset> content = new Dictionary<string, LoadedAsset>();
 #if ZIP
-	private static List<ZipArchive> zipFiles = new List<ZipArchive>();
+		private static List<ZipArchive> zipFiles = new List<ZipArchive>();
 #endif
 
 		public static bool HasContent(string path) {
@@ -140,17 +140,6 @@ namespace OriMod.Util {
 
 		internal static void Initialize() {
 
-			if (ModdedContent != null)
-				return;
-
-			string p = Assembly.GetExecutingAssembly().Location;
-
-			while (p.Contains("oriDE_Data")) {
-				p = Path.GetDirectoryName(p);
-			}
-			ModdedContent = Path.Combine(p, "Mods");
-
-
 			content.Clear();
 
 			void AddOpenContent(string path, string name) {
@@ -173,25 +162,28 @@ namespace OriMod.Util {
 					AddOpenContent(c, subpath);
 				}
 			}
+
+			
 #if ZIP
-		foreach (var zip in Directory.EnumerateFiles(ModdedContent, "*.zip")) {
-			var file = ZipFile.Open(zip, ZipArchiveMode.Read);
 
-			zipFiles.Add(file);
+			foreach (var zip in Directory.EnumerateFiles(ModdedContent, "*.zip")) {
+				var file = ZipFile.Open(zip, ZipArchiveMode.Read);
 
-			DateTime lastEdit = File.GetLastWriteTime(zip);
+				zipFiles.Add(file);
+
+				DateTime lastEdit = File.GetLastWriteTime(zip);
 
 
-			foreach (var entry in file.Entries) {
+				foreach (var entry in file.Entries) {
 
-				if (entry.FullName.StartsWith("Levels") && content.ContainsKey(entry.FullName))
-					continue;
-				if (entry.FullName.StartsWith("Levels") && entry.FullName.EndsWith(".ldtkl"))
-					continue;
+					if (entry.FullName.StartsWith("Levels") && content.ContainsKey(entry.FullName))
+						continue;
+					if (entry.FullName.StartsWith("Levels") && entry.FullName.EndsWith(".ldtkl"))
+						continue;
 
-				AddZipContent(entry, zip, lastEdit);
+					AddZipContent(entry, zip, lastEdit);
+				}
 			}
-		}
 #endif
 
 
