@@ -2,6 +2,7 @@
 using OriMod.Core;
 using OriMod.Util;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -15,16 +16,15 @@ using UnityEngine.SceneManagement;
 /// Todo: Create a mod options menu in game.
 /// Todo: Make sure the mod is working again.
 /// Todo: Organize code to be neater.
-/// Todo: Enable modded modules to exist.
+/// Todo: Finish the custom level code.
+/// Todo: Figure out how to get textures into the game
 /// </summary>
 
 public class patch_LoadingBootstrap : LoadingBootstrap {
 
-	extern void orig_Awake();
+	public extern IEnumerator orig_Start();
 
-	public void Awake() {
-		orig_Awake();
-
+	public new IEnumerator Start() {
 
 		try {
 			TempLogger.Init();
@@ -37,7 +37,14 @@ public class patch_LoadingBootstrap : LoadingBootstrap {
 			Application.Quit();
 		}
 
+		while (!ModCore.CoreLoaded)
+			yield return new WaitForEndOfFrame();
 
+		var ien = orig_Start();
+
+		while (ien.MoveNext()) {
+			yield return ien.Current;
+		}
 	}
 
 
